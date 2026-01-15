@@ -11,9 +11,16 @@
 
     onMount(() => {
         ws = new WebSocket("ws://127.0.0.1:8000/ws/control/")
+
+        ws.onopen = () => {
+            ws.send(JSON.stringify({
+                type: "hello",
+                role: "app"
+            }))
+        }
         ws.onmessage = (e) => {
             const data = JSON.parse(e.data);
-
+            console.log(data)
             if (data.type === "status") {
                 lastPing = Date.now();
                 status = "online";

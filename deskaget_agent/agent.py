@@ -63,6 +63,12 @@ async def listen():
     async with websockets.connect(uri) as websocket:
         print("Agent conectado")
 
+        await websocket.send(json.dumps({
+            "type": "hello",
+            "role": "agent",
+            "token": TOKEN
+        }))
+
         asyncio.create_task(heartbeat(websocket))
 
         while True:
@@ -74,6 +80,7 @@ async def listen():
 
             feedback = execute(data.get("action"), data)
 
+        
             await websocket.send(json.dumps({
                 "type": "feedback",
                 "role": "agent",

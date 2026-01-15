@@ -3,33 +3,57 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 import time
 
 from django.conf import settings
+
+
+APP_GROUP = "control_app_group"
+AGENT_GROUP = "control_agent_group"
 class ControlConsumer(AsyncWebsocketConsumer):
 
     async def connect(self):
-        self.group_name = "control_group"
-
-        await self.channel_layer.group_add(
-            self.group_name,
-            self.channel_name
-        )
-
         await self.accept()
-        print("📱 Cliente conectado")
+        self.role = None
+        print("📱 Websocket conectado")
 
-   
 
     async def receive(self, text_data):
         data = json.loads(text_data)
-        print("Recebido:", data)
         msg_type = data.get("type")
+
+
+        if msg_type == "hello":
+            role = data.get("role")
+
+            if role == "app":
+                self.role = "app"
+                await self.channel_layer.group_add(
+                    APP_GROUP,
+                    self.channel_name
+                )
+
+                print("APP registrado")
+                return
+            elif role == "agent":
+                token = data.get("token")
+                if token != settings.AGENT_TOKEN:
+                    print("Token inválido")
+                    await self.send(json.dumps({
+                        "type": "feedback",
+                        "status": "error",
+                        "message": "Token inválido"
+                    }))
+                    await self.close()
+                    return
+                print("AGENT registrado")
+                self.role = "agent"
+                await self.channel_layer.group_add(
+                    AGENT_GROUP,
+                    self.channel_name
+                )
         
         # 🔹 HEARTBEAT DO AGENT
-        if msg_type == "heartbeat" and data.get("role") == "agent":
-            if data.get("token") != settings.AGENT_TOKEN:
-                print("❌ Token inválido")
-                return
+        if msg_type == "heartbeat" and self.role == "agent":
             await self.channel_layer.group_send(
-                self.group_name,
+                APP_GROUP,
                 {
                     "type": "broadcast_message",
                     "message": {
@@ -42,9 +66,9 @@ class ControlConsumer(AsyncWebsocketConsumer):
             return
 
         # 🔹 COMANDO VINDO DO APP
-        if msg_type == "command" and data.get("role") == "app":
+        if msg_type == "command" and self.role == "app":
             await self.channel_layer.group_send(
-                self.group_name,
+                AGENT_GROUP,
                 {
                     "type": "broadcast_message",
                     "message": data
@@ -53,9 +77,9 @@ class ControlConsumer(AsyncWebsocketConsumer):
             return
         
         # 🔹 FEEDBACK DO AGENT → REPASSA PARA O APP
-        if msg_type == "feedback":
+        if msg_type == "feedback" and self.role == "agent":
             await self.channel_layer.group_send(
-                self.group_name,
+                APP_GROUP,
                 {
                     "type": "broadcast_message",
                     "message": data
@@ -67,8 +91,15 @@ class ControlConsumer(AsyncWebsocketConsumer):
         await self.send(json.dumps(event["message"]))
 
     async def disconnect(self, close_code):
-        await self.channel_layer.group_discard(
-            self.group_name,
-            self.channel_name
-        )
-        print("❌ Cliente desconectado")
+        if self.role == "app":
+            await self.channel_layer.group_discard(
+                APP_GROUP,
+                self.channel_name
+            )
+        elif self.role == "agent":
+            await self.channel_layer.group_discard(
+                AGENT_GROUP,
+                self.channel_name
+            )
+
+        print("❌ Websocket desconectado")
