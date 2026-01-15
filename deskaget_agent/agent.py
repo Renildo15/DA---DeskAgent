@@ -2,6 +2,11 @@ import asyncio
 import json
 import websockets
 import subprocess
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+TOKEN = os.getenv("AGENT_TOKEN")
 
 
 ALLOWED = {
@@ -46,7 +51,8 @@ async def heartbeat(websocket):
     while True:
         await websocket.send(json.dumps({
             "type": "heartbeat",
-            "role": "agent"
+            "role": "agent",
+            "token": TOKEN
         }))
 
         await asyncio.sleep(5)

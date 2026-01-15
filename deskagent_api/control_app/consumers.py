@@ -2,6 +2,7 @@ import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 import time
 
+from django.conf import settings
 class ControlConsumer(AsyncWebsocketConsumer):
 
     async def connect(self):
@@ -23,7 +24,10 @@ class ControlConsumer(AsyncWebsocketConsumer):
         msg_type = data.get("type")
         
         # 🔹 HEARTBEAT DO AGENT
-        if msg_type == "heartbeat":
+        if msg_type == "heartbeat" and data.get("role") == "agent":
+            if data.get("token") != settings.AGENT_TOKEN:
+                print("❌ Token inválido")
+                return
             await self.channel_layer.group_send(
                 self.group_name,
                 {

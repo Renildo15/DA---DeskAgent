@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { onMount } from "svelte";
-    // TODO: FEEDBACK NO APP
     // TODO: ESCOLHER TEMPO PARA DESLIGAR PC
     // TODO: CRIAR PWA
     // TODO: ADICONAR MAIS COMANDOS
