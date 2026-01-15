@@ -9,6 +9,27 @@
     let lastPing = Date.now()
     let ws:WebSocket;
 
+    let cooldown = false;
+    let cooldownTime = 0;
+    let cooldownInterval: any;
+
+    const startCooldown = (seconds: number) => {
+        cooldown = true;
+        cooldownTime = seconds;
+
+        clearInterval(cooldownInterval);
+
+        cooldownInterval = setInterval(() => {
+            cooldownTime--;
+
+            if (cooldownTime <= 0) {
+                cooldown = false;
+                clearInterval(cooldownInterval);
+            }
+        }, 1000);
+    };
+
+
     onMount(() => {
         ws = new WebSocket("ws://127.0.0.1:8000/ws/control/")
 
@@ -60,6 +81,13 @@
     let showModal = false;
 	let minutes = 10;
 
+    const sendWithCooldown = (action: string, seconds = 3, payload = {}) => {
+        sendCommand(action, payload);
+        startCooldown(seconds);
+    };
+
+
+
 </script>
 
 <main class="app">
@@ -67,17 +95,52 @@
 
     <header class="status">
         <span class="dot {status}"></span>
-        <span>PC {status === "online" ? "Online" : "Offline"} {toastMessage}</span>
+        <span>PC {status === "online" ? "Online" : "Offline"}</span>
     </header>
 
     <div class="actions">
-        <button disabled={status==="offline"} style="opacity: {status === 'offline' ? '0.5' : '1'};" onclick={() => sendCommand("shutdown")} class="danger">Desligar</button>
-        <button disabled={status==="offline"} style="opacity: {status === 'offline' ? '0.5' : '1'};" onclick={() => sendCommand("reboot")} class="warning">Reiniciar</button>
-        <button disabled={status==="offline"} style="opacity: {status === 'offline' ? '0.5' : '1'};" onclick={() => sendCommand("suspend")} >Suspender</button>
-        <button disabled={status==="offline"} style="opacity: {status === 'offline' ? '0.5' : '1'};" onclick={() => showModal = true} class="secondary">
+        <button
+            disabled={status === "offline" || cooldown}
+            style="opacity: {status === 'offline' || cooldown ? '0.5' : '1'}"
+            onclick={() => sendWithCooldown("shutdown", 3)}
+            class="danger"
+        >
+            {cooldown ? `Aguarde ${cooldownTime}s` : "Desligar"}
+        </button>
+
+        <button
+            disabled={status === "offline" || cooldown}
+            style="opacity: {status === 'offline' || cooldown ? '0.5' : '1'}"
+            onclick={() => sendWithCooldown("reboot", 3)}
+            class="warning"
+        >
+            Reiniciar
+        </button>
+
+        <button
+            disabled={status === "offline" || cooldown}
+            style="opacity: {status === 'offline' || cooldown ? '0.5' : '1'}"
+            onclick={() => sendWithCooldown("suspend", 3)}
+        >
+            Suspender
+        </button>
+
+        <button
+            disabled={status === "offline" || cooldown}
+            style="opacity: {status === 'offline' || cooldown ? '0.5' : '1'}"
+            onclick={() => showModal = true}
+            class="secondary"
+        >
             Desligar em X minutos
         </button>
-         <button disabled={status==="offline"} style="opacity: {status === 'offline' ? '0.5' : '1'};" onclick={() => sendCommand("ping")} >Ping</button>
+
+        <button
+            disabled={status === "offline" || cooldown}
+            style="opacity: {status === 'offline' || cooldown ? '0.5' : '1'}"
+            onclick={() => sendWithCooldown("ping", 2)}
+        >
+            Ping
+        </button>
 
         {#if showModal}
             <div class="modal-backdrop" role="button" tabindex="0" onclick={() => showModal = false} onkeydown={(e) => e.key === "Escape" && (showModal = false)}>
@@ -203,6 +266,12 @@
     button.secondary {
         background: #334155;
     }
+
+    button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }   
+
     /* MODAL */
 
     .modal-backdrop {

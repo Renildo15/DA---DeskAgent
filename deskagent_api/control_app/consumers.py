@@ -7,6 +7,9 @@ from django.conf import settings
 
 APP_GROUP = "control_app_group"
 AGENT_GROUP = "control_agent_group"
+
+RATE_LIMIT_SECONDS = 2
+last_comands_time = {}
 class ControlConsumer(AsyncWebsocketConsumer):
 
     async def connect(self):
@@ -67,6 +70,19 @@ class ControlConsumer(AsyncWebsocketConsumer):
 
         # 🔹 COMANDO VINDO DO APP
         if msg_type == "command" and self.role == "app":
+            now = time.time()
+            last_time = last_comands_time.get(self.channel_name, 0)
+
+            if now - last_time < RATE_LIMIT_SECONDS:
+                await self.send(json.dumps({
+                    "type": "feedback",
+                    "status": "error",
+                    "message": "Aguarde um pouco antes de enviar outro comando"
+                }))
+
+                return
+            last_comands_time[self.channel_name] = now
+            
             await self.channel_layer.group_send(
                 AGENT_GROUP,
                 {
