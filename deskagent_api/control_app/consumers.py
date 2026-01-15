@@ -47,6 +47,17 @@ class ControlConsumer(AsyncWebsocketConsumer):
                 }
             )
             return
+        
+        # 🔹 FEEDBACK DO AGENT → REPASSA PARA O APP
+        if msg_type == "feedback":
+            await self.channel_layer.group_send(
+                self.group_name,
+                {
+                    "type": "broadcast_message",
+                    "message": data
+                }
+            )
+            return
 
     async def broadcast_message(self, event):
         await self.send(json.dumps(event["message"]))

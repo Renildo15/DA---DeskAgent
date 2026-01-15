@@ -7,7 +7,8 @@ import subprocess
 ALLOWED = {
   "shutdown": "sudo /sbin/shutdown now",
   "reboot": "sudo /sbin/reboot",
-  "suspend": "sudo /bin/systemctl suspend"
+  "suspend": "sudo /bin/systemctl suspend",
+  "ping": "makefoot"
 }
 
 
@@ -16,21 +17,30 @@ def run(cmd):
 
 def execute(action, data):
     if action not in ALLOWED and action != "shutdown_with_time":
-        print("❌ Comando não permitido")
-        return
+        return {
+            "status": "error",
+            "message": "Comando não permitido"
+        }
     
     if action == "shutdown_with_time":
         minutes = data.get("minutes")
 
         if not isinstance(minutes, int) or minutes <= 0:
-            print("❌ Minutos inválidos")
-            return
+            return {
+                "status": "error",
+                "message": "Minutos inválidos"
+            }
         run(f"sudo /sbin/shutdown +{minutes}")
-        print(f"⏱️ Desligamento em {minutes} minutos")
-        return
+        return {
+            "status": "success",
+            "message": f"Desligamento agendado para {minutes} minutos"
+        }
 
     run(ALLOWED[action])
-    print(f"✅ Executado: {action}")
+    return {
+        "status": "success",
+        "message": f"Comando '{action}' executado"
+    }
 
 async def heartbeat(websocket):
     while True:
@@ -56,7 +66,12 @@ async def listen():
             if data.get("type") != "command":
                 continue
 
-            print("📩 Comando recebido:", data)
-            execute(data.get("action"), data)
+            feedback = execute(data.get("action"), data)
+
+            await websocket.send(json.dumps({
+                "type": "feedback",
+                "role": "agent",
+                **feedback
+            }))
 
 asyncio.run(listen())
