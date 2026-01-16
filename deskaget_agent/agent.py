@@ -4,6 +4,7 @@ import websockets
 import subprocess
 import os
 from dotenv import load_dotenv
+import time
 
 load_dotenv()
 TOKEN = os.getenv("AGENT_TOKEN")
@@ -15,6 +16,15 @@ ALLOWED = {
   "suspend": "sudo /bin/systemctl suspend",
   "ping": "makefoot"
 }
+
+async def send_log(ws, level, message):
+    await ws.send(json.dumps({
+        "type": "log",
+        "level": level,
+        "source": "agent",
+        "message": message,
+        "timestamp": time.time()
+    }))
 
 
 def run(cmd):
@@ -61,7 +71,7 @@ async def listen():
     uri = "ws://127.0.0.1:8000/ws/control/"
 
     async with websockets.connect(uri) as websocket:
-        print("Agent conectado")
+        await send_log(websocket, "info", "Agent conectado")
 
         await websocket.send(json.dumps({
             "type": "hello",
@@ -79,6 +89,11 @@ async def listen():
                 continue
 
             feedback = execute(data.get("action"), data)
+
+            if feedback["status"] == "success":
+                await send_log(websocket, "success", feedback["message"])
+            else:
+                await send_log(websocket, "error", feedback["message"])
 
         
             await websocket.send(json.dumps({

@@ -23,6 +23,8 @@ class ControlConsumer(AsyncWebsocketConsumer):
         msg_type = data.get("type")
 
 
+
+
         if msg_type == "hello":
             role = data.get("role")
 
@@ -102,6 +104,18 @@ class ControlConsumer(AsyncWebsocketConsumer):
                 }
             )
             return
+
+        # 🔹 LOG DO AGENT → APP
+        if msg_type == "log":
+            await self.channel_layer.group_send(
+                "control_app_group",
+                {
+                    "type": "broadcast_message",
+                    "message": data
+                }
+            )
+            return
+
 
     async def broadcast_message(self, event):
         await self.send(json.dumps(event["message"]))

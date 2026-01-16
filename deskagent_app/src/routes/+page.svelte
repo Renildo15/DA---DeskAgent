@@ -30,6 +30,13 @@
     };
 
 
+    let logs: {
+        level: string;
+        message: string;
+        timestamp: number;
+    }[] = [];
+
+
     onMount(() => {
         ws = new WebSocket("ws://127.0.0.1:8000/ws/control/")
 
@@ -41,16 +48,20 @@
         }
         ws.onmessage = (e) => {
             const data = JSON.parse(e.data);
-            console.log(data)
+
             if (data.type === "status") {
                 lastPing = Date.now();
                 status = "online";
             }
-            console.log(data)
+
             if (data.type === "feedback") {
                 toastMessage = data.message;
                 toastType = data.status;
                 setTimeout(() => toastMessage = "", 3000);
+            }
+
+            if (data.type === "log") {
+                logs = [data, ...logs].slice(0, 50);
             }
         };
 
@@ -91,91 +102,103 @@
 </script>
 
 <main class="app">
-  <section class="card">
+    <section class="card">
 
-    <header class="status">
-        <span class="dot {status}"></span>
-        <span>PC {status === "online" ? "Online" : "Offline"}</span>
-    </header>
+        <header class="status">
+            <span class="dot {status}"></span>
+            <span>PC {status === "online" ? "Online" : "Offline"}</span>
+        </header>
 
-    <div class="actions">
-        <button
-            disabled={status === "offline" || cooldown}
-            style="opacity: {status === 'offline' || cooldown ? '0.5' : '1'}"
-            onclick={() => sendWithCooldown("shutdown", 3)}
-            class="danger"
-        >
-            {cooldown ? `Aguarde ${cooldownTime}s` : "Desligar"}
-        </button>
+        <div class="actions">
+            <button
+                disabled={status === "offline" || cooldown}
+                style="opacity: {status === 'offline' || cooldown ? '0.5' : '1'}"
+                onclick={() => sendWithCooldown("shutdown", 3)}
+                class="danger"
+            >
+                {cooldown ? `Aguarde ${cooldownTime}s` : "Desligar"}
+            </button>
 
-        <button
-            disabled={status === "offline" || cooldown}
-            style="opacity: {status === 'offline' || cooldown ? '0.5' : '1'}"
-            onclick={() => sendWithCooldown("reboot", 3)}
-            class="warning"
-        >
-            Reiniciar
-        </button>
+            <button
+                disabled={status === "offline" || cooldown}
+                style="opacity: {status === 'offline' || cooldown ? '0.5' : '1'}"
+                onclick={() => sendWithCooldown("reboot", 3)}
+                class="warning"
+            >
+                Reiniciar
+            </button>
 
-        <button
-            disabled={status === "offline" || cooldown}
-            style="opacity: {status === 'offline' || cooldown ? '0.5' : '1'}"
-            onclick={() => sendWithCooldown("suspend", 3)}
-        >
-            Suspender
-        </button>
+            <button
+                disabled={status === "offline" || cooldown}
+                style="opacity: {status === 'offline' || cooldown ? '0.5' : '1'}"
+                onclick={() => sendWithCooldown("suspend", 3)}
+            >
+                Suspender
+            </button>
 
-        <button
-            disabled={status === "offline" || cooldown}
-            style="opacity: {status === 'offline' || cooldown ? '0.5' : '1'}"
-            onclick={() => showModal = true}
-            class="secondary"
-        >
-            Desligar em X minutos
-        </button>
+            <button
+                disabled={status === "offline" || cooldown}
+                style="opacity: {status === 'offline' || cooldown ? '0.5' : '1'}"
+                onclick={() => showModal = true}
+                class="secondary"
+            >
+                Desligar em X minutos
+            </button>
 
-        <button
-            disabled={status === "offline" || cooldown}
-            style="opacity: {status === 'offline' || cooldown ? '0.5' : '1'}"
-            onclick={() => sendWithCooldown("ping", 2)}
-        >
-            Ping
-        </button>
+            <button
+                disabled={status === "offline" || cooldown}
+                style="opacity: {status === 'offline' || cooldown ? '0.5' : '1'}"
+                onclick={() => sendWithCooldown("ping", 2)}
+            >
+                Ping
+            </button>
 
-        {#if showModal}
-            <div class="modal-backdrop" role="button" tabindex="0" onclick={() => showModal = false} onkeydown={(e) => e.key === "Escape" && (showModal = false)}>
-                <div class="modal">
-                    <h2>⏱️ Desligar PC</h2>
+            {#if showModal}
+                <div class="modal-backdrop" role="button" tabindex="0" onclick={() => showModal = false} onkeydown={(e) => e.key === "Escape" && (showModal = false)}>
+                    <div class="modal">
+                        <h2>⏱️ Desligar PC</h2>
 
-                    <p>Tempo até desligar:</p>
-                    <strong>{minutes} minutos</strong>
+                        <p>Tempo até desligar:</p>
+                        <strong>{minutes} minutos</strong>
 
-                    <input
-                        type="range"
-                        min="1"
-                        max="120"
-                        bind:value={minutes}
-                    />
+                        <input
+                            type="range"
+                            min="1"
+                            max="120"
+                            bind:value={minutes}
+                        />
 
-                    <div class="modal-actions">
-                        <button type="button" class="secondary" onclick={() => showModal = false}>
-                            Cancelar
-                        </button>
-                        <button class="danger" onclick={confirmShutdownWithTime}>
-                            Confirmar
-                        </button>
+                        <div class="modal-actions">
+                            <button type="button" class="secondary" onclick={() => showModal = false}>
+                                Cancelar
+                            </button>
+                            <button class="danger" onclick={confirmShutdownWithTime}>
+                                Confirmar
+                            </button>
+                        </div>
                     </div>
                 </div>
+            {/if}
+
+        </div>
+        
+        {#if toastMessage}
+            <div class="toast {toastType}">
+                {toastMessage}
             </div>
         {/if}
+    </section>
+    <section class="logs">
+        <h3>📜 Logs</h3>
 
-    </div>
-    {#if toastMessage}
-        <div class="toast {toastType}">
-            {toastMessage}
-        </div>
-    {/if}
-  </section>
+        {#each logs as log}
+            <div class="log {log.level}">
+                <span>{new Date(log.timestamp * 1000).toLocaleTimeString()}</span>
+                <span>{log.message}</span>
+            </div>
+        {/each}
+    </section>
+
 </main>
 
 <style>
@@ -194,6 +217,8 @@
         align-items: flex-start;
         padding: 20px;
         color: #fff;
+        display: flex;
+        flex-direction: column;
     }
 
     .card {
@@ -349,5 +374,27 @@
     .toast.success { background: #16a34a; }
     .toast.error   { background: #dc2626; }
     .toast.info    { background: #2563eb; }
+
+    .logs {
+        margin-top: 20px;
+        background: #0f172a;
+        border-radius: 14px;
+        padding: 12px;
+        width: 100%;
+        overflow-y: auto;
+    }
+
+    .log {
+        font-size: 14px;
+        display: flex;
+        gap: 8px;
+        margin-bottom: 6px;
+    }
+
+    .log.success { color: #22c55e; }
+    .log.error   { color: #ef4444; }
+    .log.info    { color: #60a5fa; }
+    .log.warning { color: #facc15; }
+
 
 </style>
