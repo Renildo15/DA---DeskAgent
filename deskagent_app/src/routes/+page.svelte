@@ -1,8 +1,8 @@
 <script lang="ts">
+	import { PUBLIC_WS_URL } from "$env/static/public";
 	import { onMount } from "svelte";
-    // TODO: ESCOLHER TEMPO PARA DESLIGAR PC
-    // TODO: CRIAR PWA
-    // TODO: ADICONAR MAIS COMANDOS
+
+
     let status: "online" | "offline" = "offline"
     let toastMessage = "";
     let toastType: "success" | "error" | "info" = "info";
@@ -38,7 +38,7 @@
 
 
     onMount(() => {
-        ws = new WebSocket("ws://127.0.0.1:8000/ws/control/")
+        ws = new WebSocket(PUBLIC_WS_URL);
 
         ws.onopen = () => {
             ws.send(JSON.stringify({
