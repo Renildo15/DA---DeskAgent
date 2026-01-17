@@ -14,6 +14,8 @@ from pathlib import Path
 from decouple import config
 
 AGENT_TOKEN=config("AGENT_TOKEN")
+DESKAGENT_SECRET = config("DESKAGENT_SECRET")
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -29,9 +31,7 @@ SECRET_KEY = config("SECRET_KEY")
 DEBUG = True
 
 ALLOWED_HOSTS = [
-    "deskagent-api.onrender.com",
-    "localhost",
-    "127.0.0.1",
+   "*"
 ]
 
 
@@ -137,7 +137,6 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 REDIS_URL=config("REDIS_URL")
-print(REDIS_URL)
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
