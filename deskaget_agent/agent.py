@@ -5,6 +5,8 @@ import subprocess
 import os
 from dotenv import load_dotenv
 import time
+import signal
+import sys
 
 load_dotenv()
 TOKEN = os.getenv("AGENT_TOKEN")
@@ -17,6 +19,10 @@ ALLOWED = {
   "cancel": "sudo /bin/shutdown -t",
   "ping": "makefoot"
 }
+
+def shutdown(sig, frame):
+    print("Encerrando agent...")
+    sys.exit(0)
 
 async def send_log(ws, level, message):
     await ws.send(json.dumps({
@@ -103,3 +109,4 @@ async def listen():
             }))
 
 asyncio.run(listen())
+signal.signal(signal.SIGTERM, shutdown)
