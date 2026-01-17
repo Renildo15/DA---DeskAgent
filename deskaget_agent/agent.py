@@ -8,12 +8,13 @@ import time
 
 load_dotenv()
 TOKEN = os.getenv("AGENT_TOKEN")
-
+URL = os.getenv("PUBLIC_WS_URL")
 
 ALLOWED = {
   "shutdown": "sudo /sbin/shutdown now",
   "reboot": "sudo /sbin/reboot",
   "suspend": "sudo /bin/systemctl suspend",
+  "cancel": "sudo /bin/shutdown -t",
   "ping": "makefoot"
 }
 
@@ -68,8 +69,7 @@ async def heartbeat(websocket):
         await asyncio.sleep(5)
 
 async def listen():
-    uri = "ws://127.0.0.1:8000/ws/control/"
-
+    uri = URL
     async with websockets.connect(uri) as websocket:
         await send_log(websocket, "info", "Agent conectado")
 
