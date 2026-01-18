@@ -5,20 +5,19 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Modal,
   Alert,
 } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { Toast } from '@/components/toast';
+import { PowerOffModal } from '@/components/power-off-modal';
+import { StatusCard } from '@/components/status-card';
+import { BtnAction } from '@/components/btn-action';
+import { LogType } from '@/types';
+import { LogsList } from '@/components/logs-list';
 
 const WS_URL = process.env.EXPO_PUBLIC_WS_URL || "ws://localhost:8000/ws/control/"
-
-type LogType = {
-  level: string;
-  message: string;
-  timestamp: number;
-};
 
 type ToastType = 'success' | 'error' | 'info';
 
@@ -174,98 +173,68 @@ export default function HomeScreen() {
         clearTimeout(toastTimeoutRef.current);
       }
     };
-  }, []); // Executa apenas uma vez no mount
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Toast Notification */}
       {toastMessage ? (
-        <View style={[styles.toast, styles[`toast${toastType}`]]}>
-          <ThemedText style={styles.toastText}>{toastMessage}</ThemedText>
-        </View>
+        <Toast toastMessage={toastMessage} toastType={toastType}/>
       ) : null}
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Status Card */}
-        <View style={styles.statusCard}>
-          <View style={styles.statusHeader}>
-            <View style={[styles.dot, status === 'online' ? styles.onlineDot : styles.offlineDot]} />
-            <ThemedText type="subtitle" style={styles.statusText}>
-              PC {status === 'online' ? 'Online' : 'Offline'}
-            </ThemedText>
-          </View>
-          
-          <ThemedText type="defaultSemiBold" style={styles.timeText}>
-            Último ping: {new Date(lastPing).toLocaleTimeString()}
-          </ThemedText>
-          
-          {cooldown && (
-            <View style={styles.cooldownContainer}>
-              <MaterialCommunityIcons name="timer-sand" size={16} color="#ff9800" />
-              <ThemedText type="default" style={styles.cooldownText}>
-                Cooldown: {cooldownTime}s
-              </ThemedText>
-            </View>
-          )}
-        </View>
-
-        {/* Ações */}
+        <StatusCard 
+          cooldown={cooldown} 
+          cooldownTime={cooldownTime} 
+          lastPing={lastPing} 
+          status={status}
+        />
         <View style={styles.actionsSection}>
           <ThemedText type="title" style={styles.sectionTitle}>
             Ações Rápidas
           </ThemedText>
 
           <View style={styles.actionsGrid}>
-            <TouchableOpacity 
-              style={[styles.actionButton, (cooldown || status === "offline") && styles.actionButtonDisabled]}
-              onPress={() => sendWithCooldown('shutdown')}
-              disabled={cooldown || status === "offline"}
-            >
-              <View style={[styles.iconContainer, styles.powerOff]}>
-                <MaterialCommunityIcons name="power" size={28} color="#fff" />
-              </View>
-              <ThemedText type="defaultSemiBold" style={styles.buttonText}>
-                Desligar
-              </ThemedText>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={[styles.actionButton, (cooldown || status === "offline") && styles.actionButtonDisabled]}
-              onPress={() => sendWithCooldown('cancel')}
-              disabled={cooldown || status === "offline"}
-            >
-              <View style={[styles.iconContainer, styles.powerOff]}>
-                <MaterialCommunityIcons name="cancel" size={28} color="#fff" />
-              </View>
-              <ThemedText type="defaultSemiBold" style={styles.buttonText}>
-                Cancelar
-              </ThemedText>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={[styles.actionButton, (cooldown || status === "offline") && styles.actionButtonDisabled]}
-              onPress={() => sendWithCooldown('reboot')}
-              disabled={cooldown || status === "offline"}
-            >
-              <View style={[styles.iconContainer, styles.restart]}>
-                <MaterialCommunityIcons name="restart" size={28} color="#fff" />
-              </View>
-              <ThemedText type="defaultSemiBold" style={styles.buttonText}>
-                Reiniciar
-              </ThemedText>
-            </TouchableOpacity>
 
-            <TouchableOpacity 
-              style={[styles.actionButton, (cooldown || status === "offline") && styles.actionButtonDisabled]}
-              onPress={() => sendWithCooldown('suspend')}
-              disabled={cooldown || status === "offline"}
-            >
-              <View style={[styles.iconContainer, styles.sleep]}>
-                <MaterialCommunityIcons name="sleep-off" size={28} color="#fff" />
-              </View>
-              <ThemedText type="defaultSemiBold" style={styles.buttonText}>
-                Suspender
-              </ThemedText>
-            </TouchableOpacity>
+            <BtnAction
+              cooldown={cooldown}
+              iconName='power'
+              nameClass='powerOff'
+              sendWithCooldown={sendWithCooldown}
+              command={"shutdown"}
+              status={status}
+              text='Desligar'
+            />
+
+            <BtnAction
+              cooldown={cooldown}
+              iconName='cancel'
+              nameClass='powerOff'
+              sendWithCooldown={sendWithCooldown}
+              command={"cancel"}
+              status={status}
+              text='Cancelar'
+            />
+
+            <BtnAction
+              cooldown={cooldown}
+              iconName='restart'
+              nameClass='restart'
+              sendWithCooldown={sendWithCooldown}
+              command={"reboot"}
+              status={status}
+              text='Reiniciar'
+            />
+
+            <BtnAction
+              cooldown={cooldown}
+              iconName='sleep-off'
+              nameClass='sleep'
+              sendWithCooldown={sendWithCooldown}
+              command={"suspend"}
+              status={status}
+              text='Suspender'
+            />
+           
 
             <TouchableOpacity 
               style={[styles.actionButton, (cooldown || status === "offline") && styles.actionButtonDisabled]}
@@ -283,18 +252,15 @@ export default function HomeScreen() {
               </ThemedText>
             </TouchableOpacity>
 
-            <TouchableOpacity 
-              style={[styles.actionButton, (cooldown || status === "offline") && styles.actionButtonDisabled]}
-              onPress={() => sendCommand('ping')}
-              disabled={cooldown || status === "offline"}
-            >
-              <View style={[styles.iconContainer, styles.ping]}>
-                <MaterialCommunityIcons name="signal" size={28} color="#fff" />
-              </View>
-              <ThemedText type="defaultSemiBold" style={styles.buttonText}>
-                Ping
-              </ThemedText>
-            </TouchableOpacity>
+             <BtnAction
+              cooldown={cooldown}
+              iconName='signal'
+              nameClass='ping'
+              sendWithCooldown={sendWithCooldown}
+              command={"ping"}
+              status={status}
+              text='Ping'
+            />
           </View>
         </View>
 
@@ -311,85 +277,19 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
 
-          <View style={styles.logsContent}>
-            {logs.length === 0 ? (
-              <ThemedText type="default" style={styles.noLogsText}>
-                Nenhum log disponível
-              </ThemedText>
-            ) : (
-              logs.map((log, index) => (
-                <View key={index} style={styles.logItem}>
-                  <View style={[
-                    styles.logDot,
-                    log.level === 'error' ? styles.errorDot :
-                    log.level === 'warning' ? styles.warningDot :
-                    styles.infoDot
-                  ]} />
-                  <View style={styles.logTextContainer}>
-                    <ThemedText type="defaultSemiBold">{log.message}</ThemedText>
-                    <ThemedText type="default" style={styles.logTime}>
-                      {new Date(log.timestamp).toLocaleTimeString()}
-                    </ThemedText>
-                  </View>
-                </View>
-              ))
-            )}
-          </View>
+          <LogsList
+            logs={logs}
+          />
         </View>
       </ScrollView>
 
-      {/* Modal para desligamento com tempo */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={showModal}
-        onRequestClose={() => setShowModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <ThemedText type="title" style={styles.modalTitle}>
-              Desligar em X minutos
-            </ThemedText>
-            
-            <View style={styles.minutesContainer}>
-              <TouchableOpacity 
-                style={styles.minuteButton}
-                onPress={() => setMinutes(Math.max(1, minutes - 1))}
-              >
-                <MaterialCommunityIcons name="minus" size={24} color="#333" />
-              </TouchableOpacity>
-              
-              <View style={styles.minutesDisplay}>
-                <ThemedText type="title">{minutes}</ThemedText>
-                <ThemedText type="default">minutos</ThemedText>
-              </View>
-              
-              <TouchableOpacity 
-                style={styles.minuteButton}
-                onPress={() => setMinutes(minutes + 1)}
-              >
-                <MaterialCommunityIcons name="plus" size={24} color="#333" />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.modalButtons}>
-              <TouchableOpacity 
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => setShowModal(false)}
-              >
-                <ThemedText style={styles.cancelButtonText}>Cancelar</ThemedText>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={[styles.modalButton, styles.confirmButton]}
-                onPress={confirmShutdownWithTime}
-              >
-                <ThemedText style={styles.confirmButtonText}>Confirmar</ThemedText>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+    <PowerOffModal 
+      confirmShutdownWithTime={confirmShutdownWithTime}
+      minutes={minutes}
+      setMinutes={setMinutes}
+      setShowModal={setShowModal}
+      showModal={showModal}
+    />
     </SafeAreaView>
   );
 }
@@ -402,87 +302,7 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-  
-  // Toast
-  toast: {
-    position: 'absolute',
-    top: 10,
-    left: 20,
-    right: 20,
-    zIndex: 1000,
-    padding: 15,
-    borderRadius: 8,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  toastsuccess: {
-    backgroundColor: '#4CAF50',
-  },
-  toasterror: {
-    backgroundColor: '#f44336',
-  },
-  toastinfo: {
-    backgroundColor: '#2196F3',
-  },
-  toastText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  
-  // Status Card
-  statusCard: {
-    backgroundColor: '#fff',
-    margin: 16,
-    padding: 20,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  statusHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  onlineDot: {
-    backgroundColor: '#4CAF50',
-  },
-  offlineDot: {
-    backgroundColor: '#f44336',
-  },
-  dot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginRight: 10,
-  },
-  statusText: {
-    fontSize: 20,
-  },
-  timeText: {
-    color: '#666',
-    marginBottom: 4,
-  },
-  cooldownContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-    padding: 8,
-    backgroundColor: '#fff3cd',
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#ffeaa7',
-  },
-  cooldownText: {
-    color: '#856404',
-    marginLeft: 8,
-  },
+
   
   // Actions Section
   actionsSection: {
@@ -571,110 +391,6 @@ const styles = StyleSheet.create({
     color: '#f44336',
     fontSize: 14,
   },
-  logsContent: {
-    backgroundColor: '#f8f9fa',
-    borderRadius: 8,
-    padding: 12,
-    minHeight: 100,
-  },
-  noLogsText: {
-    textAlign: 'center',
-    color: '#888',
-    padding: 20,
-  },
-  logItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e9ecef',
-  },
-  logDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 12,
-  },
-  infoDot: {
-    backgroundColor: '#2196F3',
-  },
-  warningDot: {
-    backgroundColor: '#ff9800',
-  },
-  errorDot: {
-    backgroundColor: '#f44336',
-  },
-  logTextContainer: {
-    flex: 1,
-  },
-  logTime: {
-    color: '#888',
-    marginTop: 2,
-  },
   
-  // Modal
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  modalContent: {
-    backgroundColor: 'white',
-    borderRadius: 20,
-    padding: 35,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-    width: '80%',
-  },
-  modalTitle: {
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  minutesContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 20,
-  },
-  minuteButton: {
-    padding: 15,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 10,
-  },
-  minutesDisplay: {
-    alignItems: 'center',
-    marginHorizontal: 20,
-    minWidth: 80,
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-  },
-  modalButton: {
-    flex: 1,
-    padding: 15,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginHorizontal: 5,
-  },
-  cancelButton: {
-    backgroundColor: '#f0f0f0',
-  },
-  confirmButton: {
-    backgroundColor: '#4CAF50',
-  },
-  cancelButtonText: {
-    color: '#333',
-  },
-  confirmButtonText: {
-    color: '#fff',
-  },
+
 });
