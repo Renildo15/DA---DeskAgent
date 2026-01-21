@@ -11,5 +11,8 @@ ALLOWED = {
   "reboot": "sudo /sbin/reboot",
   "suspend": "sudo /bin/systemctl suspend",
   "cancel": "sudo /bin/shutdown -t",
-  "ping": "makefoot"
+  "ping": "makefoot",
+  "pkill_discord": "sudo /usr/bin/pkill Discord",
+  "pkill_chrome": "sudo /usr/bin/pkill Brave",
+  "pkill_code": "sudo /usr/bin/pkill code",
 }
