@@ -268,16 +268,16 @@ export default function HomeScreen() {
         <Toast toastMessage={toastMessage} toastType={toastType} />
       ) : null}
 
+      <StatusCard
+        cooldown={cooldown}
+        cooldownTime={cooldownTime}
+        lastPing={lastPing}
+        status={status}
+      />
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
       >
-        <StatusCard
-          cooldown={cooldown}
-          cooldownTime={cooldownTime}
-          lastPing={lastPing}
-          status={status}
-        />
         <ActionSection
           allActions={allActions}
           cooldown={cooldown}
