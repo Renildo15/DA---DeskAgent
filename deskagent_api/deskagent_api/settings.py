@@ -14,7 +14,7 @@ from pathlib import Path
 from decouple import config
 
 AGENT_TOKEN=config("AGENT_TOKEN")
-DESKAGENT_SECRET = config("DESKAGENT_SECRET")
+# DESKAGENT_SECRET = config("DESKAGENT_SECRET")
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
