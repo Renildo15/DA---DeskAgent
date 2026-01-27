@@ -18,9 +18,9 @@ ALLOWED = {
   "suspend": "sudo /bin/systemctl suspend",
   "cancel": "sudo /bin/shutdown -t",
   "ping": "makefoot",
-  "pkill_discord": "sudo /usr/bin/pkill Discord",
-  "pkill_chrome": "sudo /usr/bin/pkill Brave",
-  "pkill_code": "sudo /usr/bin/pkill code",
+  "pkill_discord": "pkill -9 Discord",
+  "pkill_chrome": "pkill -9 Brave",
+  "pkill_code": "pkill -9 code",
 }
 
 def shutdown(sig, frame):
