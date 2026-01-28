@@ -9,9 +9,10 @@ import signal
 import sys
 import psutil
 import socket
+import getpass
 
 load_dotenv()
-URL = os.getenv("PUBLIC_WS_URL")
+URL = os.getenv("PUBLIC_WS_URL_STATUS")
 
 
 def get_local_ip():
@@ -45,12 +46,12 @@ def collect_system_info():
         "timestamp": time.time(),
         "system": os.uname().sysname,
         "node_name": os.uname().nodename,
-        "user": os.getlogin(),
+        "user": getpass.getuser(),
         "ip_local": get_local_ip(),
     }
 
 async def send_system_info():
-    async with websockets.connect("ws://10.220.0.19:8000/ws/pc_info/") as ws:
+    async with websockets.connect(URL) as ws:
         await ws.send(json.dumps({
             "type": "hello",
             "role": "agent",

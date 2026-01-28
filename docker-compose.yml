@@ -1,0 +1,36 @@
+version: "3.9"
+
+services:
+  api:
+    build: ./deskagent_api
+    container_name: deskagent_api
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./deskagent_api:/app
+    env_file:
+      - ./deskagent_api/.env
+    restart: unless-stopped
+
+  # agent:
+  #   build: ./deskagent_agent
+  #   container_name: deskagent_agent
+  #   volumes:
+  #     - ./deskagent_agent:/app
+  #   env_file:
+  #     - ./deskagent_agent/.env
+  #   depends_on:
+  #     - api
+  #   restart: unless-stopped
+
+  # agent_status:
+  #   build: ./deskagent_agent
+  #   container_name: deskagent_agent_status
+  #   command: ["python", "agent_status.py"]
+  #   volumes:
+  #     - ./deskagent_agent:/app
+  #   env_file:
+  #     - ./deskagent_agent/.env
+  #   depends_on:
+  #     - api
+  #   restart: unless-stopped

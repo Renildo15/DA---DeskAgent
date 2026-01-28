@@ -79,37 +79,45 @@ async def heartbeat(websocket):
 
 async def listen():
     uri = URL
-    async with websockets.connect(uri) as websocket:
-        await send_log(websocket, "info", "Agent conectado")
 
-        await websocket.send(json.dumps({
-            "type": "hello",
-            "role": "agent",
-            "token": TOKEN
-        }))
+    while True:
+        try:
+            async with websockets.connect(uri) as websocket:
+                await send_log(websocket, "info", "Agent conectado")
 
-        asyncio.create_task(heartbeat(websocket))
+                await websocket.send(json.dumps({
+                    "type": "hello",
+                    "role": "agent",
+                    "token": TOKEN
+                }))
 
-        while True:
-            message = await websocket.recv()
-            data = json.loads(message)
+                asyncio.create_task(heartbeat(websocket))
 
-            if data.get("type") != "command":
-                continue
+                while True:
+                    message = await websocket.recv()
+                    data = json.loads(message)
 
-            feedback = execute(data.get("action"), data)
+                    if data.get("type") != "command":
+                        continue
 
-            if feedback["status"] == "success":
-                await send_log(websocket, "success", feedback["message"])
-            else:
-                await send_log(websocket, "error", feedback["message"])
+                    feedback = execute(data.get("action"), data)
 
-        
-            await websocket.send(json.dumps({
-                "type": "feedback",
-                "role": "agent",
-                **feedback
-            }))
+                    await send_log(
+                        websocket,
+                        "success" if feedback["status"] == "success" else "error",
+                        feedback["message"]
+                    )
+
+                    await websocket.send(json.dumps({
+                        "type": "feedback",
+                        "role": "agent",
+                        **feedback
+                    }))
+
+        except Exception as e:
+            print("❌ API indisponível, tentando novamente em 3s...")
+            await asyncio.sleep(3)
+
 
 asyncio.run(listen())
 signal.signal(signal.SIGTERM, shutdown)

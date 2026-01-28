@@ -11,7 +11,7 @@ import os
 
 from django.core.asgi import get_asgi_application
 from channels.routing import ProtocolTypeRouter, URLRouter
-import control_app.routing
+from control_app import routing
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'deskagent_api.settings')
 
@@ -19,7 +19,7 @@ application = ProtocolTypeRouter(
     {
         "http": get_asgi_application(),
         "websocket": URLRouter(
-            control_app.routing.websocket_urlpatterns
+            routing.websocket_urlpatterns
         ),
     }
 )
